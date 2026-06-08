@@ -618,8 +618,48 @@
             handleSearch();
         }
 
+        function normalizeSearchText(value) {
+            return String(value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+        }
+
+        function editDistance(a, b) {
+            const previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+
+            for (let i = 1; i <= a.length; i++) {
+                let diagonal = previous[0];
+                previous[0] = i;
+
+                for (let j = 1; j <= b.length; j++) {
+                    const temp = previous[j];
+                    previous[j] = Math.min(
+                        previous[j] + 1,
+                        previous[j - 1] + 1,
+                        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1)
+                    );
+                    diagonal = temp;
+                }
+            }
+
+            return previous[b.length];
+        }
+
+        function fuzzyIncludes(text, query) {
+            const normalizedText = normalizeSearchText(text);
+            const normalizedQuery = normalizeSearchText(query).trim();
+            if (!normalizedQuery) return true;
+            if (normalizedText.includes(normalizedQuery)) return true;
+            if (normalizedQuery.length < 4) return false;
+
+            const words = normalizedText.split(/[^a-z0-9]+/).filter(Boolean);
+            const maxDistance = normalizedQuery.length <= 6 ? 1 : 2;
+            return words.some(word => Math.abs(word.length - normalizedQuery.length) <= maxDistance && editDistance(word, normalizedQuery) <= maxDistance);
+        }
+
         function handleSearch() {
-            const query = document.getElementById('search-bar').value.toLowerCase();
+            const query = document.getElementById('search-bar').value;
             let filtered = allFeatures;
             
             if (currentCountryFilter !== 'ALL') {
@@ -628,10 +668,10 @@
             
             if (query.trim() !== '') {
                 filtered = filtered.filter(f => {
-                    const name = (f.properties.location.name || '').toLowerCase();
-                    const addr = (f.properties.location.address || '').toLowerCase();
+                    const name = f.properties.location.name || '';
+                    const addr = f.properties.location.address || '';
                     const meta = getPlaceMeta(f.properties.location.name);
-                    return name.includes(query) || addr.includes(query) || meta.label.toLowerCase().includes(query);
+                    return fuzzyIncludes(`${name} ${addr} ${meta.label}`, query);
                 });
             }
             
