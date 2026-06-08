@@ -318,6 +318,7 @@
             'FI': 'Finlande 🇫🇮',
             'FR': 'France 🇫🇷',
             'GB': 'Royaume-Uni 🇬🇧',
+            'GB-ENG': 'Angleterre',
             'GB-SCT': 'Écosse',
             'GB-WLS': 'Pays de Galles',
             'GR': 'Grèce 🇬🇷',
@@ -340,6 +341,7 @@
             'MX': 'Mexique 🇲🇽',
             'MY': 'Malaisie 🇲🇾',
             'NA': 'Namibie 🇳🇦',
+            'NL': 'Pays-Bas 🇳🇱',
             'NO': 'Norvège 🇳🇴',
             'NZ': 'Nouvelle-Zélande 🇳🇿',
             'OM': 'Oman 🇴🇲',
@@ -426,10 +428,20 @@
                 'écosse',
                 'blairgowrie',
                 'perthshire',
+                'pitlochry',
+                'glenshee',
                 'isle of skye',
                 'glenfinnan',
                 'achnasheen',
                 'kyle of lochalsh',
+                'kyle',
+                'bealach',
+                'strathcarron',
+                'tongue',
+                'quiraing',
+                'glen etive',
+                'braemar',
+                'ballater',
                 'inverness',
                 'edinburgh',
                 'glasgow',
@@ -443,7 +455,23 @@
 
         function isWalesPlace(place) {
             const text = `${place.name || ''} ${place.address || ''} ${place.city || ''}`.toLowerCase();
-            return ['wales', 'pays de galles', 'barry', 'cardiff', 'swansea'].some(marker => text.includes(marker));
+            return ['wales', 'pays de galles', 'snowdon', 'caernarfon', 'barry', 'cardiff', 'swansea'].some(marker => text.includes(marker));
+        }
+
+        function isEnglandPlace(place) {
+            const text = `${place.name || ''} ${place.address || ''} ${place.city || ''}`.toLowerCase();
+            return [
+                'england',
+                'angleterre',
+                'durdle door',
+                'wareham',
+                'wrynose pass',
+                'broughton-in-furness',
+                'old harry rocks',
+                'beachy head',
+                'eastbourne',
+                'lulworth cove'
+            ].some(marker => text.includes(marker));
         }
 
         function inferCountryCode(place) {
@@ -453,6 +481,7 @@
             if (existingCode === 'GB') {
                 if (isScotlandPlace(place)) return 'GB-SCT';
                 if (isWalesPlace(place)) return 'GB-WLS';
+                if (isEnglandPlace(place)) return 'GB-ENG';
                 return 'GB';
             }
 
@@ -477,7 +506,7 @@
                 'Japon': 'JP',
                 'Portugal': 'PT',
                 'Roumanie': 'RO',
-                'Royaume-Uni': isScotlandPlace(place) ? 'GB-SCT' : (isWalesPlace(place) ? 'GB-WLS' : 'GB'),
+                'Royaume-Uni': isScotlandPlace(place) ? 'GB-SCT' : (isWalesPlace(place) ? 'GB-WLS' : (isEnglandPlace(place) ? 'GB-ENG' : 'GB')),
                 'Suède': 'SE',
                 'Suisse': 'CH',
                 'Tchéquie': 'CZ'
@@ -493,6 +522,25 @@
         let allFeatures = [];
         let currentCountryFilter = 'ALL';
 
+        function placeFromMapsUrl(url) {
+            try {
+                const parsedUrl = new URL(url || '');
+                const rawQuery = parsedUrl.searchParams.get('q') || '';
+                const decodedQuery = rawQuery.replace(/\+/g, ' ').trim();
+                if (!decodedQuery) return null;
+
+                const parts = decodedQuery.split(',').map(part => part.trim()).filter(Boolean);
+                return {
+                    name: parts[0] || decodedQuery,
+                    address: decodedQuery,
+                    country_code: /,\s*UK$/i.test(decodedQuery) || /\bUK$/i.test(decodedQuery) ? 'GB' : '',
+                    city: parts[0] || ''
+                };
+            } catch (err) {
+                return null;
+            }
+        }
+
         function normalizePlace(place) {
             return {
                 properties: {
@@ -507,13 +555,31 @@
             };
         }
 
+        function normalizeFeature(feature) {
+            const location = feature.properties && feature.properties.location;
+            const fallbackPlace = placeFromMapsUrl(feature.properties && feature.properties.google_maps_url);
+            const place = location || fallbackPlace || {};
+
+            return {
+                properties: {
+                    location: {
+                        name: place.name || '',
+                        address: place.address || '',
+                        country_code: inferCountryCode(place),
+                        city: place.city || ''
+                    },
+                    google_maps_url: (feature.properties && feature.properties.google_maps_url) || '#'
+                }
+            };
+        }
+
         fetch(jsonUrl)
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                const rawFeatures = Array.isArray(data) ? data.map(normalizePlace) : (data.features || []);
+                const rawFeatures = Array.isArray(data) ? data.map(normalizePlace) : (data.features || []).map(normalizeFeature);
                 allFeatures = rawFeatures.filter(f => f.properties && f.properties.location && f.properties.location.address);
                 generateFilters(allFeatures);
                 renderPage(allFeatures);
