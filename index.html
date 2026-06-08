@@ -317,7 +317,9 @@
             'ES': 'Espagne 🇪🇸',
             'FI': 'Finlande 🇫🇮',
             'FR': 'France 🇫🇷',
-            'GB': 'Écosse',
+            'GB': 'Royaume-Uni 🇬🇧',
+            'GB-SCT': 'Écosse',
+            'GB-WLS': 'Pays de Galles',
             'GR': 'Grèce 🇬🇷',
             'HK': 'Hong Kong 🇭🇰',
             'HR': 'Croatie 🇭🇷',
@@ -417,6 +419,77 @@
             return cityPart;
         }
 
+        function isScotlandPlace(place) {
+            const text = `${place.name || ''} ${place.address || ''} ${place.city || ''}`.toLowerCase();
+            return [
+                'scotland',
+                'écosse',
+                'blairgowrie',
+                'perthshire',
+                'isle of skye',
+                'glenfinnan',
+                'achnasheen',
+                'kyle of lochalsh',
+                'inverness',
+                'edinburgh',
+                'glasgow',
+                'stirling',
+                'dundee',
+                'aberdeen',
+                'fort william',
+                'oban'
+            ].some(marker => text.includes(marker));
+        }
+
+        function isWalesPlace(place) {
+            const text = `${place.name || ''} ${place.address || ''} ${place.city || ''}`.toLowerCase();
+            return ['wales', 'pays de galles', 'barry', 'cardiff', 'swansea'].some(marker => text.includes(marker));
+        }
+
+        function inferCountryCode(place) {
+            const address = place.address || '';
+            const existingCode = place.country_code || '';
+
+            if (existingCode === 'GB') {
+                if (isScotlandPlace(place)) return 'GB-SCT';
+                if (isWalesPlace(place)) return 'GB-WLS';
+                return 'GB';
+            }
+
+            if (existingCode && existingCode !== 'Unknown') return existingCode;
+
+            const countryByAddress = {
+                'Afrique du Sud': 'ZA',
+                'Albanie': 'AL',
+                'Allemagne': 'DE',
+                'Arménie': 'AM',
+                'Autriche': 'AT',
+                'Bulgarie': 'BG',
+                'Canada': 'CA',
+                'Chine': 'CN',
+                'Corée du Sud': 'KR',
+                'Espagne': 'ES',
+                'États-Unis': 'US',
+                'Finlande': 'FI',
+                'France': 'FR',
+                'Grèce': 'GR',
+                'Italie': 'IT',
+                'Japon': 'JP',
+                'Portugal': 'PT',
+                'Roumanie': 'RO',
+                'Royaume-Uni': isScotlandPlace(place) ? 'GB-SCT' : (isWalesPlace(place) ? 'GB-WLS' : 'GB'),
+                'Suède': 'SE',
+                'Suisse': 'CH',
+                'Tchéquie': 'CZ'
+            };
+
+            for (const country in countryByAddress) {
+                if (address.includes(country)) return countryByAddress[country];
+            }
+
+            return 'Autre';
+        }
+
         let allFeatures = [];
         let currentCountryFilter = 'ALL';
 
@@ -426,7 +499,7 @@
                     location: {
                         name: place.name || '',
                         address: place.address || '',
-                        country_code: place.country_code || 'Autre',
+                        country_code: inferCountryCode(place),
                         city: place.city || ''
                     },
                     google_maps_url: place.url || place.google_maps_url || '#'
@@ -514,7 +587,7 @@
                 const loc = f.properties.location;
                 const cCode = loc.country_code || 'Autre';
                 const cName = countryNames[cCode] || cCode;
-                const city = detectCity(loc.address, cCode);
+                const city = loc.city && loc.city !== 'Unknown' ? loc.city : detectCity(loc.address, cCode);
 
                 if (!tree[cName]) tree[cName] = {};
                 if (!tree[cName][city]) tree[cName][city] = [];
