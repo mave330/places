@@ -290,7 +290,7 @@
     </div>
 
     <script>
-        const jsonUrl = 'Adresses enregistrées.json';
+        const jsonUrl = 'places_data.json';
 
         const countryNames = {
             'FR': 'France 🇫🇷',
@@ -370,10 +370,28 @@
         let allFeatures = [];
         let currentCountryFilter = 'ALL';
 
+        function normalizePlace(place) {
+            return {
+                properties: {
+                    location: {
+                        name: place.name || '',
+                        address: place.address || '',
+                        country_code: place.country_code || 'Autre',
+                        city: place.city || ''
+                    },
+                    google_maps_url: place.url || place.google_maps_url || '#'
+                }
+            };
+        }
+
         fetch(jsonUrl)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
             .then(data => {
-                allFeatures = data.features.filter(f => f.properties && f.properties.location && f.properties.location.address);
+                const rawFeatures = Array.isArray(data) ? data.map(normalizePlace) : (data.features || []);
+                allFeatures = rawFeatures.filter(f => f.properties && f.properties.location && f.properties.location.address);
                 generateFilters(allFeatures);
                 renderPage(allFeatures);
             })
