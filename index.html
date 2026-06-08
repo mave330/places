@@ -293,23 +293,73 @@
         const jsonUrl = 'places_data.json';
 
         const countryNames = {
-            'FR': 'France 🇫🇷',
-            'RO': 'Roumanie 🇷🇴',
-            'JP': 'Japon 🇯🇵',
-            'PA': 'Panama 🇵🇦',
-            'US': 'États-Unis 🇺🇸',
-            'DE': 'Allemagne 🇩🇪',
-            'AT': 'Autriche 🇦🇹',
-            'SE': 'Suède 🇸🇪',
-            'IT': 'Italie 🇮🇹',
-            'CA': 'Canada 🇨🇦',
-            'GR': 'Grèce 🇬🇷',
-            'VN': 'Viêt Nam 🇻🇳',
-            'NZ': 'Nouvelle-Zélande 🇳🇿',
-            'CR': 'Costa Rica 🇨🇷',
+            'AL': 'Albanie 🇦🇱',
+            'AM': 'Arménie 🇦🇲',
+            'AO': 'Angola 🇦🇴',
             'AR': 'Argentine 🇦🇷',
+            'AT': 'Autriche 🇦🇹',
+            'Autre': 'Non classé',
+            'AU': 'Australie 🇦🇺',
+            'BE': 'Belgique 🇧🇪',
+            'BG': 'Bulgarie 🇧🇬',
+            'BR': 'Brésil 🇧🇷',
+            'BW': 'Botswana 🇧🇼',
+            'BZ': 'Belize 🇧🇿',
+            'CA': 'Canada 🇨🇦',
+            'CH': 'Suisse 🇨🇭',
+            'CL': 'Chili 🇨🇱',
+            'CN': 'Chine 🇨🇳',
+            'CO': 'Colombie 🇨🇴',
+            'CR': 'Costa Rica 🇨🇷',
+            'CZ': 'Tchéquie 🇨🇿',
+            'DE': 'Allemagne 🇩🇪',
+            'DK': 'Danemark 🇩🇰',
+            'ES': 'Espagne 🇪🇸',
+            'FI': 'Finlande 🇫🇮',
+            'FR': 'France 🇫🇷',
+            'GB': 'Écosse',
+            'GR': 'Grèce 🇬🇷',
+            'HK': 'Hong Kong 🇭🇰',
+            'HR': 'Croatie 🇭🇷',
+            'HU': 'Hongrie 🇭🇺',
+            'ID': 'Indonésie 🇮🇩',
+            'IN': 'Inde 🇮🇳',
+            'IS': 'Islande 🇮🇸',
+            'IT': 'Italie 🇮🇹',
+            'JP': 'Japon 🇯🇵',
+            'KH': 'Cambodge 🇰🇭',
+            'KR': 'Corée du Sud 🇰🇷',
+            'KZ': 'Kazakhstan 🇰🇿',
+            'LK': 'Sri Lanka 🇱🇰',
+            'MA': 'Maroc 🇲🇦',
+            'MD': 'Moldavie 🇲🇩',
+            'ME': 'Monténégro 🇲🇪',
+            'MU': 'Maurice 🇲🇺',
+            'MX': 'Mexique 🇲🇽',
+            'MY': 'Malaisie 🇲🇾',
+            'NA': 'Namibie 🇳🇦',
+            'NO': 'Norvège 🇳🇴',
+            'NZ': 'Nouvelle-Zélande 🇳🇿',
+            'OM': 'Oman 🇴🇲',
+            'PA': 'Panama 🇵🇦',
+            'PH': 'Philippines 🇵🇭',
+            'PR': 'Porto Rico 🇵🇷',
+            'PT': 'Portugal 🇵🇹',
+            'RE': 'La Réunion 🇷🇪',
+            'RO': 'Roumanie 🇷🇴',
+            'RS': 'Serbie 🇷🇸',
+            'RU': 'Russie 🇷🇺',
+            'SE': 'Suède 🇸🇪',
+            'SI': 'Slovénie 🇸🇮',
+            'SK': 'Slovaquie 🇸🇰',
+            'TH': 'Thaïlande 🇹🇭',
+            'TR': 'Turquie 🇹🇷',
+            'TZ': 'Tanzanie 🇹🇿',
+            'US': 'États-Unis 🇺🇸',
+            'VN': 'Viêt Nam 🇻🇳',
             'ZA': 'Afrique du Sud 🇿🇦',
-            'MU': 'Maurice 🇲🇺'
+            'ZM': 'Zambie 🇿🇲',
+            'Unknown': 'Non classé'
         };
 
         function getPlaceMeta(name) {
@@ -406,7 +456,9 @@
             });
 
             const toolbar = document.getElementById('toolbar');
-            Array.from(countries).sort().forEach(code => {
+            Array.from(countries)
+                .sort((a, b) => (countryNames[a] || a).localeCompare(countryNames[b] || b, 'fr'))
+                .forEach(code => {
                 const btn = document.createElement('button');
                 btn.className = 'filter-btn';
                 btn.innerText = countryNames[code] || code;
